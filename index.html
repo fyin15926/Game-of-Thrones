@@ -1359,7 +1359,7 @@ function handleChoice(nextVal) {
 }
 
 function composeNarrative() {
-    if (whiteWalkerCount >= 6) {
+    if (whiteWalkerCount >= 8) {
         return "当维斯特洛的诸侯们在泥淖中厮杀时，有一个影子始终站在阴影的边缘。\n\n" +
                "你冷眼旁观着长城的崩塌与誓言的破碎。既不投身火的热烈，也不屈从血的羁绊。你的沉默比咆哮更令人胆寒，你的拒绝比背叛更加决绝。\n\n" +
                "最终，南方再也没有消息传来。万物归于沉寂，唯有冰冷的雪花盖过了所有人的名字。长夜已至，而你，正是那长夜本身。";
@@ -1437,7 +1437,8 @@ function showResult() {
     entries.sort(function(a, b) { return b[1] - a[1]; });
 
     var winKey;
-    if (whiteWalkerCount >= 6) {
+    var isWhiteWalkerEnding = whiteWalkerCount >= 8;
+    if (isWhiteWalkerEnding) {
         winKey = "whiteWalker";
     } else {
         winKey = getWinnerKey(entries);
@@ -1449,7 +1450,8 @@ function showResult() {
 
     var houseEn = {
         stark: 'HOUSE STARK', lannister: 'HOUSE LANNISTER', targaryen: 'HOUSE TARGARYEN',
-        tyrell: 'HOUSE TYRELL', martell: 'HOUSE MARTELL', nightswatch: "THE NIGHT'S WATCH"
+        tyrell: 'HOUSE TYRELL', martell: 'HOUSE MARTELL', nightswatch: "THE NIGHT'S WATCH",
+        whiteWalker: "THE WHITE WALKERS"
     };
 
     document.documentElement.style.setProperty('--accent', h.color);
@@ -1457,9 +1459,18 @@ function showResult() {
     var maxScore = Math.max.apply(null, entries.map(function(e) { return e[1]; }));
     if (maxScore <= 0) maxScore = 1;
     var rankHtml = '';
-    for (var r = 0; r < entries.length; r++) {
-        var rk = entries[r][0];
-        var rs = entries[r][1];
+    var displayEntries;
+    if (isWhiteWalkerEnding) {
+        var whiteWalkerEntry = entries.find(function(e) { return e[0] === 'whiteWalker'; });
+        var otherEntries = entries.filter(function(e) { return e[0] !== 'whiteWalker'; });
+        otherEntries.sort(function(a, b) { return b[1] - a[1]; });
+        displayEntries = [whiteWalkerEntry].concat(otherEntries);
+    } else {
+        displayEntries = entries.filter(function(e) { return e[0] !== 'whiteWalker'; });
+    }
+    for (var r = 0; r < displayEntries.length; r++) {
+        var rk = displayEntries[r][0];
+        var rs = displayEntries[r][1];
         var rh = HOUSES[rk];
         if (!rh) continue;
         var pct = Math.max(0, Math.round(rs / maxScore * 100));
@@ -1478,9 +1489,10 @@ function showResult() {
             + '</div>';
     }
 
-    var secondKey = entries[1] && entries[1][1] > 0 ? entries[1][0] : null;
+    var nonWhiteWalkerEntries = entries.filter(function(e) { return e[0] !== 'whiteWalker'; });
+    var secondKey = nonWhiteWalkerEntries[1] && nonWhiteWalkerEntries[1][1] > 0 ? nonWhiteWalkerEntries[1][0] : null;
     var secondHintHtml = '';
-    if (secondKey && ALLEGIANCE_DATA[secondKey]) {
+    if (secondKey && ALLEGIANCE_DATA[secondKey] && secondKey !== 'whiteWalker') {
         var sh = HOUSES[secondKey];
         secondHintHtml = '<div class="second-hint">'
             + '在你骨血深处，还潜伏着一道<b style="color:' + sh.color + '">' + sh.name + '</b>的影子——'
