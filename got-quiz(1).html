@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>权力的游戏 — 效忠测试</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;700;900&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@300;400;500;700;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --gold: #d4b25a;
+            --gold-bright: #f0d57a;
+            --gold-deep: #8a6a1e;
+            --gold-dim: rgba(212,178,90,0.22);
+            --bg: #05040a;
+            --bg-2: #0d0a08;
+            --surface: rgba(20,16,13,0.86);
+            --surface-solid: #110d0b;
+            --text: #ece3d1;
+            --muted: #8a7e6e;
+            --accent: var(--gold);
+        }
+
+        html, body { overflow-x: hidden; }
+
+        body {
+            background:
+                radial-gradient(ellipse at 20% 10%, rgba(138,106,30,0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 90%, rgba(90,30,30,0.10) 0%, transparent 55%),
+                linear-gradient(180deg, #05040a 0%, #0a0806 100%);
+            color: var(--text);
+            font-family: 'Noto Serif SC', 'Cormorant Garamond', 'Songti SC', 'SimSun', serif;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Film grain + vignette overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%),
+                url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.9  0 0 0 0 0.8  0 0 0 0 0.5  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            mix-blend-mode: overlay;
+            z-index: 1;
+            opacity: 0.9;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 120%, rgba(212,178,90,0.08), transparent 50%);
+            z-index: 1;
+        }
+
+        /* Floating embers */
+        .embers {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            overflow: hidden;
+        }
+        .ember {
+            position: absolute;
+            bottom: -10px;
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, rgba(240,213,122,0.9), rgba(212,128,40,0.3) 60%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0;
+            animation: riseEmber linear infinite;
+            filter: blur(0.5px);
+        }
+        @keyframes riseEmber {
+            0%   { transform: translateY(0) translateX(0); opacity: 0; }
+            10%  { opacity: 0.9; }
+            90%  { opacity: 0.6; }
+            100% { transform: translateY(-110vh) translateX(var(--drift, 40px)); opacity: 0; }
+        }
+
+        .screen {
+            display: none;
+            min-height: 100vh;
+            padding: 3rem 1.2rem;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            position: relative;
+            z-index: 3;
+            transition: background 1.5s ease;
+        }
+        .screen.path-a::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(201,69,58,0.08), transparent 60%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .screen.path-b::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(123,174,212,0.06), transparent 60%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .screen.active { display: flex; }
+
+        /* ─── INTRO ─── */
+        .intro-wrap {
+            max-width: 560px;
+            width: 100%;
+            text-align: center;
+            animation: fadeUp 0.7s ease;
+        }
+        .deco-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            color: var(--gold);
+            opacity: 0.45;
+            font-size: 0.85rem;
+            letter-spacing: 0.8em;
+            margin-bottom: 2rem;
+        }
+        .deco-line::before, .deco-line::after {
+            content: '';
+            flex: 1;
+            max-width: 70px;
+            height: 1px;
+        }
+        .deco-line::before { background: linear-gradient(90deg, transparent, var(--gold)); }
+        .deco-line::after  { background: linear-gradient(90deg, var(--gold), transparent); }
+
+        .intro-en {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+            font-weight: 500;
+            letter-spacing: 0.6em;
+            background: linear-gradient(180deg, #f0d57a 0%, #d4b25a 50%, #8a6a1e 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.9rem;
+            text-indent: 0.6em;
+        }
+        .intro-cn {
+            font-size: clamp(2.4rem, 7.5vw, 4rem);
+            font-weight: 900;
+            color: var(--text);
+            line-height: 1.15;
+            margin-bottom: 0.6rem;
+            letter-spacing: 0.12em;
+            text-shadow:
+                0 0 20px rgba(212,178,90,0.15),
+                0 2px 8px rgba(0,0,0,0.8);
+        }
+        .intro-cn span {
+            background: linear-gradient(180deg, #f4e0a0 0%, #d4b25a 45%, #8a6a1e 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .intro-tagline {
+            font-family: 'Cinzel', 'Noto Serif SC', serif;
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: var(--gold);
+            letter-spacing: 0.4em;
+            margin-bottom: 2.8rem;
+            opacity: 0.9;
+            font-style: italic;
+            font-weight: 400;
+            text-indent: 0.4em;
+        }
+        .intro-lore {
+            font-size: 0.95rem;
+            line-height: 2.25;
+            color: #a89c8a;
+            margin-bottom: 2.5rem;
+            padding: 1.4rem 1.6rem;
+            text-align: left;
+            position: relative;
+            background: linear-gradient(180deg, rgba(212,178,90,0.03), transparent);
+            border-left: 1px solid var(--gold-dim);
+            border-right: 1px solid var(--gold-dim);
+        }
+        .intro-lore::before, .intro-lore::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+        }
+        .intro-lore::before { top: 0; }
+        .intro-lore::after { bottom: 0; }
+
+        .sigil-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.4rem;
+            margin-bottom: 2.8rem;
+        }
+        .sigil-item {
+            font-size: 1.8rem;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(212,178,90,0.18);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212,178,90,0.05), transparent);
+            opacity: 0.5;
+            cursor: default;
+            transition: all 0.4s ease;
+            filter: grayscale(0.3);
+        }
+        .sigil-item:hover {
+            opacity: 1;
+            transform: scale(1.15) translateY(-4px);
+            border-color: var(--gold);
+            box-shadow: 0 4px 20px rgba(212,178,90,0.35);
+            filter: grayscale(0);
+        }
+
+        .btn {
+            display: inline-block;
+            position: relative;
+            padding: 1rem 3rem;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.15), transparent 50%),
+                linear-gradient(135deg, #6a4a0a 0%, #d4b25a 45%, #f0d57a 50%, #d4b25a 55%, #6a4a0a 100%);
+            color: #1a0f05;
+            font-family: 'Cinzel', 'Noto Serif SC', serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.35em;
+            text-indent: 0.35em;
+            cursor: pointer;
+            border: 1px solid rgba(240,213,122,0.4);
+            border-radius: 1px;
+            min-height: 50px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.3),
+                0 6px 20px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.25);
+            transition: transform 0.3s cubic-bezier(.22,.94,.3,1.05), box-shadow 0.3s;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            transition: left 0.7s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow:
+                0 0 0 1px rgba(240,213,122,0.5),
+                0 10px 32px rgba(212,178,90,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.35);
+        }
+        .btn:hover::before { left: 100%; }
+        .btn:active { transform: translateY(0) scale(0.98); }
+        .btn.btn-secondary {
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.03), transparent),
+                linear-gradient(135deg, #1a1410 0%, #2a2018 50%, #1a1410 100%);
+            color: var(--gold);
+            border: 1px solid rgba(212,178,90,0.5);
+            box-shadow:
+                0 4px 18px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(212,178,90,0.15);
+        }
+        .btn.btn-secondary:hover {
+            border-color: var(--gold-bright);
+            color: var(--gold-bright);
+            box-shadow:
+                0 0 0 1px rgba(212,178,90,0.35),
+                0 8px 26px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(212,178,90,0.3);
+        }
+        .btn:disabled { opacity: 0.5; cursor: wait; pointer-events: none; }
+
+        /* ─── QUIZ ─── */
+        .quiz-wrap { width: 100%; max-width: 700px; }
+        .prog-area { margin-bottom: 2rem; }
+        .prog-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.55rem;
+            font-size: 0.72rem;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+        }
+        .prog-track {
+            height: 2px;
+            background: rgba(255,255,255,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+        .prog-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6a4a0a, #d4b25a 50%, #f0d57a);
+            transition: width 0.7s cubic-bezier(.22,.94,.3,1);
+            box-shadow: 0 0 8px rgba(212,178,90,0.6);
+            position: relative;
+        }
+        .prog-fill::after {
+            content: '';
+            position: absolute;
+            right: -4px; top: -3px;
+            width: 8px; height: 8px;
+            background: var(--gold-bright);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--gold-bright), 0 0 20px rgba(240,213,122,0.5);
+        }
+        .q-card {
+            background:
+                linear-gradient(180deg, rgba(212,178,90,0.04), transparent 40%),
+                var(--surface);
+            border: 1px solid rgba(212,178,90,0.18);
+            padding: 2.5rem 2.2rem;
+            position: relative;
+            backdrop-filter: blur(4px);
+            box-shadow:
+                0 12px 40px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(212,178,90,0.1);
+            animation: slideUp 0.5s cubic-bezier(.22,.94,.3,1) both;
+        }
+        /* Corner ornaments */
+        .q-card::before, .q-card::after,
+        .q-card > .corner-bl, .q-card > .corner-br {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            border: 1px solid var(--gold);
+            opacity: 0.55;
+        }
+        .q-card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+        .q-card::after  { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+        .q-card > .corner-bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+        .q-card > .corner-br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+        .q-label {
+            font-family: 'Cinzel', serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.5em;
+            color: var(--gold);
+            margin-bottom: 1.3rem;
+            opacity: 0.75;
+            text-indent: 0.5em;
+        }
+        .q-text {
+            font-size: 1.18rem;
+            line-height: 2;
+            color: var(--text);
+            margin-bottom: 2rem;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+        .opts { display: flex; flex-direction: column; gap: 0.7rem; }
+        .opt {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.1rem 1.2rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 0.92rem;
+            line-height: 1.7;
+            color: #b5ab9e;
+            text-align: left;
+            min-height: 52px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.3s cubic-bezier(.22,.94,.3,1);
+            border-radius: 1px;
+        }
+        .opt::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, transparent, var(--gold), transparent);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        .opt:hover {
+            background: linear-gradient(135deg, rgba(212,178,90,0.08), rgba(212,178,90,0.02));
+            border-color: rgba(212,178,90,0.45);
+            color: var(--text);
+            transform: translateX(6px);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+        }
+        .opt:hover::before { transform: scaleY(1); }
+        .opt:active {
+            background: rgba(212,178,90,0.12);
+            border-color: rgba(212,178,90,0.6);
+            color: var(--text);
+        }
+        .opt.chosen {
+            background: linear-gradient(135deg, rgba(212,178,90,0.14), rgba(212,178,90,0.04));
+            border-color: var(--gold);
+            color: var(--text);
+        }
+        .opt.chosen::before { transform: scaleY(1); }
+        .opt-ltr {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--gold);
+            min-width: 1.5rem;
+            padding-top: 0.15rem;
+            opacity: 0.95;
+            letter-spacing: 0.1em;
+        }
+
+        .q-text-wrap {
+            position: relative;
+            min-height: 3.8rem;
+        }
+        .q-text .char {
+            opacity: 0;
+            display: inline-block;
+        }
+        .opt.char-in {
+            opacity: 0;
+            transform: translateX(8px);
+        }
+
+        /* ─── RESULT ─── */
+        .result-wrap { max-width: 660px; width: 100%; animation: fadeUp 0.6s ease; }
+        .result-head { text-align: center; margin-bottom: 2rem; }
+        .result-eyebrow {
+            font-size: 0.72rem;
+            letter-spacing: 0.5em;
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+        }
+        .result-icon { font-size: 5rem; display: block; line-height: 1; margin-bottom: 1rem; }
+        .result-name { font-size: clamp(1.9rem, 6vw, 3rem); font-weight: 700; margin-bottom: 0.4rem; }
+        .result-motto { font-size: 0.9rem; letter-spacing: 0.2em; font-style: italic; opacity: 0.65; margin-bottom: 1.5rem; }
+        .result-shadow {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+            padding: 0.8rem 0;
+            margin: 0.5rem 0 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            letter-spacing: 0.08em;
+            line-height: 1.8;
+        }
+        .traits { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+        .trait { padding: 0.22rem 0.75rem; border: 1px solid currentColor; font-size: 0.72rem; letter-spacing: 0.18em; opacity: 0.6; }
+        .r-divider { width: 60px; height: 1px; margin: 1.8rem auto; opacity: 0.25; border: none; }
+        .result-body {
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.065);
+            padding: 2rem;
+            margin-bottom: 1.4rem;
+        }
+        .result-body p { font-size: 0.93rem; line-height: 2.05; color: #b0a898; margin-bottom: 1rem; }
+        .result-body p:last-child { margin-bottom: 0; }
+        .score-box {
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.065);
+            padding: 1.6rem 2rem;
+            margin-bottom: 1.8rem;
+        }
+        .score-title { font-size: 0.68rem; letter-spacing: 0.45em; color: var(--muted); margin-bottom: 1.3rem; }
+        .score-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.7rem; }
+        .score-name { font-size: 0.78rem; color: #b0a090; width: 118px; flex-shrink: 0; }
+        .score-track { flex: 1; height: 3px; background: rgba(255,255,255,0.065); }
+        .score-fill { height: 100%; width: 0%; transition: width 1.1s ease; }
+        .score-n { font-size: 0.72rem; color: var(--muted); width: 1.4rem; text-align: right; }
+        .result-foot { text-align: center; }
+
+        .chronicle-wrap { max-width: 720px; width: 100%; animation: fadeUp 0.8s ease; }
+        .chronicle-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(1.4rem, 4vw, 2.1rem);
+            text-align: center;
+            color: var(--gold);
+            margin-bottom: 2.5rem;
+            letter-spacing: 0.2em;
+            font-weight: 500;
+            position: relative;
+            padding: 1.5rem 0;
+        }
+        .chronicle-title::before, .chronicle-title::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+        .chronicle-title::before { top: 0; }
+        .chronicle-title::after { bottom: 0; }
+        .chronicle-body {
+            font-size: 1.05rem;
+            line-height: 2.3;
+            color: #d0c8b8;
+            text-align: justify;
+            margin-bottom: 2.5rem;
+            min-height: 200px;
+            white-space: pre-line;
+            padding: 0 0.5rem;
+            font-weight: 300;
+            letter-spacing: 0.02em;
+        }
+        .chronicle-footer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--muted);
+            letter-spacing: 0.15em;
+            padding: 1.8rem 0;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        .chronicle-footer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 60px; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+        }
+
+        .allegiance-box {
+            text-align: center;
+            padding: 3rem 2rem 2.5rem;
+            background:
+                radial-gradient(ellipse at top, rgba(212,178,90,0.12), transparent 70%),
+                linear-gradient(180deg, rgba(20,16,13,0.95), rgba(12,10,8,0.9));
+            border: 1px solid rgba(212,178,90,0.3);
+            margin-bottom: 2.5rem;
+            position: relative;
+            box-shadow:
+                0 16px 50px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(212,178,90,0.15);
+        }
+        .allegiance-box::before, .allegiance-box::after {
+            content: '';
+            position: absolute;
+            width: 22px; height: 22px;
+            border: 1px solid var(--gold);
+            opacity: 0.7;
+        }
+        .allegiance-box::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+        .allegiance-box::after { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+        .allegiance-corner-bl, .allegiance-corner-br {
+            position: absolute;
+            width: 22px; height: 22px;
+            border: 1px solid var(--gold);
+            opacity: 0.7;
+        }
+        .allegiance-corner-bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+        .allegiance-corner-br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+        .allegiance-icon {
+            font-size: 3.2rem;
+            display: block;
+            line-height: 1;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 4px 12px rgba(212,178,90,0.4));
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .allegiance-motto {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            color: var(--gold);
+            opacity: 0.9;
+            letter-spacing: 0.18em;
+            margin-bottom: 1.2rem;
+            font-style: italic;
+            font-weight: 500;
+        }
+        .allegiance-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(1.5rem, 4.5vw, 2.1rem);
+            color: var(--text);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.12em;
+            font-weight: 700;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+        }
+        .allegiance-title-en {
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.5em;
+            background: linear-gradient(180deg, #f0d57a, #8a6a1e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.6rem;
+            display: block;
+            text-indent: 0.5em;
+        }
+        .allegiance-advice {
+            font-size: 1rem;
+            line-height: 2.1;
+            color: #b0a090;
+            text-align: justify;
+            padding: 0 0.3rem;
+            font-weight: 300;
+        }
+
+        /* ─── RANK BOARD ─── */
+        .rank-board {
+            background:
+                linear-gradient(180deg, rgba(212,178,90,0.04), transparent 40%),
+                var(--surface);
+            border: 1px solid rgba(212,178,90,0.18);
+            padding: 2rem 2rem 1.8rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .rank-board::before, .rank-board::after,
+        .rank-board > .rc-bl, .rank-board > .rc-br {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            border: 1px solid var(--gold);
+            opacity: 0.5;
+        }
+        .rank-board::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+        .rank-board::after  { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+        .rank-board > .rc-bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+        .rank-board > .rc-br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+        .rank-title {
+            font-family: 'Cinzel', serif;
+            font-size: 0.72rem;
+            letter-spacing: 0.5em;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 0.5rem;
+            text-indent: 0.5em;
+            opacity: 0.85;
+        }
+        .rank-sub {
+            font-size: 0.78rem;
+            letter-spacing: 0.2em;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 1.6rem;
+        }
+        .rank-row {
+            display: grid;
+            grid-template-columns: 1.4rem 1.8rem 1fr auto;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.7rem 0;
+            border-bottom: 1px dashed rgba(212,178,90,0.1);
+            opacity: 0;
+            animation: rankIn 0.5s cubic-bezier(.22,.94,.3,1) both;
+        }
+        .rank-row:last-child { border-bottom: none; }
+        .rank-row.primary { padding: 0.9rem 0; }
+        .rank-row.primary .rank-idx { color: var(--gold-bright); text-shadow: 0 0 8px rgba(240,213,122,0.6); }
+        .rank-row.primary .rank-name { color: var(--text); font-weight: 500; }
+        .rank-idx {
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            color: var(--muted);
+            text-align: center;
+        }
+        .rank-icon {
+            font-size: 1.3rem;
+            line-height: 1;
+            text-align: center;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        .rank-main { min-width: 0; }
+        .rank-name {
+            font-size: 0.9rem;
+            color: #b5ab9e;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .rank-tag {
+            font-family: 'Cinzel', serif;
+            font-size: 0.58rem;
+            letter-spacing: 0.3em;
+            padding: 0.12rem 0.5rem;
+            border: 1px solid currentColor;
+            opacity: 0.7;
+            border-radius: 1px;
+            text-indent: 0.3em;
+        }
+        .rank-bar {
+            height: 3px;
+            background: rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .rank-fill {
+            height: 100%;
+            width: 0;
+            transition: width 1.2s cubic-bezier(.22,.94,.3,1);
+            box-shadow: 0 0 6px currentColor;
+        }
+        .rank-score {
+            font-family: 'Cinzel', serif;
+            font-size: 0.88rem;
+            color: var(--muted);
+            min-width: 2.2rem;
+            text-align: right;
+        }
+        .rank-row.primary .rank-score { color: var(--gold-bright); }
+        @keyframes rankIn {
+            from { opacity: 0; transform: translateX(-12px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        .ledger-block {
+            margin: 2.5rem 0;
+            padding: 2rem 1.8rem 1.6rem;
+            background:
+                linear-gradient(180deg, rgba(212,178,90,0.03), transparent 60%),
+                rgba(20,16,13,0.55);
+            border: 1px solid rgba(212,178,90,0.15);
+            position: relative;
+        }
+        .ledger-block::before, .ledger-block::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+        }
+        .ledger-block::before { top: 0; }
+        .ledger-block::after { bottom: 0; }
+
+        .ledger-title {
+            font-family: 'Cinzel', serif;
+            font-size: 0.72rem;
+            letter-spacing: 0.5em;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 0.4rem;
+            text-indent: 0.5em;
+            opacity: 0.85;
+        }
+        .ledger-sub {
+            font-size: 0.78rem;
+            letter-spacing: 0.2em;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 1.8rem;
+        }
+        .ledger-row {
+            padding: 1rem 0;
+            border-bottom: 1px dashed rgba(212,178,90,0.1);
+            opacity: 0;
+            animation: rankIn 0.6s cubic-bezier(.22,.94,.3,1) both;
+        }
+        .ledger-row:last-child { border-bottom: none; }
+        .ledger-choice {
+            font-size: 0.92rem;
+            line-height: 1.7;
+            color: var(--text);
+            margin-bottom: 0.7rem;
+            letter-spacing: 0.03em;
+        }
+        .ledger-choice .chose-label {
+            font-family: 'Cinzel', serif;
+            font-size: 0.62rem;
+            letter-spacing: 0.3em;
+            color: var(--gold);
+            margin-right: 0.6rem;
+            opacity: 0.8;
+            text-indent: 0.3em;
+        }
+        .ledger-gain, .ledger-loss {
+            font-size: 0.88rem;
+            line-height: 1.8;
+            color: #a89c8a;
+            padding-left: 1.4rem;
+            position: relative;
+        }
+        .ledger-gain::before, .ledger-loss::before {
+            position: absolute;
+            left: 0;
+            font-family: 'Cinzel', serif;
+            font-size: 0.62rem;
+            letter-spacing: 0.15em;
+            top: 0.25rem;
+            font-weight: 700;
+        }
+        .ledger-gain::before { content: '得'; color: var(--gold); }
+        .ledger-loss::before { content: '失'; color: #8a5a5a; }
+
+        .second-hint {
+            font-size: 0.9rem;
+            line-height: 1.9;
+            color: #a09080;
+            padding: 1.2rem 1.3rem;
+            margin-top: 1.4rem;
+            background: rgba(255,255,255,0.015);
+            border-left: 2px solid var(--gold-dim);
+            font-style: italic;
+        }
+        .second-hint b { color: var(--text); font-style: normal; font-weight: 500; letter-spacing: 0.05em; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 600px) {
+            .screen {
+                padding: 1.5rem 0.9rem;
+                padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+                justify-content: flex-start;
+                padding-top: 2rem;
+            }
+            .intro-tagline { letter-spacing: 0.15em; margin-bottom: 2rem; }
+            .intro-lore { font-size: 0.88rem; line-height: 2; }
+            .sigil-row { gap: 1rem; margin-bottom: 2rem; }
+            .sigil-item { font-size: 1.7rem; }
+            .btn {
+                display: block;
+                width: 100%;
+                padding: 1rem;
+                letter-spacing: 0.2em;
+                font-size: 1rem;
+            }
+            .prog-area { margin-bottom: 1.4rem; }
+            .q-card { padding: 1.4rem 1rem; }
+            .q-text { font-size: 1rem; line-height: 1.8; margin-bottom: 1.4rem; }
+            .opts { gap: 0.55rem; }
+            .opt { padding: 0.85rem 0.85rem; font-size: 0.86rem; min-height: 56px; }
+            .result-body, .score-box { padding: 1.2rem 1rem; }
+            .result-icon { font-size: 4rem; }
+            .result-motto { letter-spacing: 0.1em; font-size: 0.85rem; }
+            .score-name { width: 88px; font-size: 0.72rem; }
+            .score-box { padding: 1.2rem 1rem; }
+            .traits { gap: 0.4rem; }
+            .trait { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+        }
+        @media (max-width: 360px) {
+            .score-name { width: 76px; font-size: 0.68rem; }
+            .opt { font-size: 0.82rem; }
+            .q-text { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<div class="embers" id="embers"></div>
+
+<div class="screen active" id="s-intro">
+    <div class="intro-wrap">
+        <div class="deco-line">&#9876;</div>
+        <p class="intro-en">GAME OF THRONES</p>
+        <h1 class="intro-cn"><span>铁王座之争</span></h1>
+        <p class="intro-tagline">你会效忠于谁？</p>
+        <p class="intro-lore">
+            维斯特洛从无净土，铁王座上亦无久坐之人。<br>
+            有人为荣誉赴死，有人为权力而生；<br>
+            有人放下姓名走向长城，有人背负血仇直至白发。<br>
+            十二道抉择之后，史册将写下你的名字——<br>
+            而那名字，便是你真正效忠的归属。<br>
+        </p>
+        <div class="sigil-row">
+            <span class="sigil-item" title="史塔克家族">&#x1F43A;</span>
+            <span class="sigil-item" title="兰尼斯特家族">&#x1F981;</span>
+            <span class="sigil-item" title="坦格利安家族">&#x1F409;</span>
+            <span class="sigil-item" title="提利尔家族">&#x1F339;</span>
+            <span class="sigil-item" title="马泰尔家族">&#x2600;&#xFE0F;</span>
+            <span class="sigil-item" title="守夜人军团">&#x2694;&#xFE0F;</span>
+        </div>
+        <button class="btn" id="btn-start">开始测试</button>
+    </div>
+</div>
+
+<div class="screen" id="s-quiz">
+    <div class="quiz-wrap">
+        <div class="prog-area">
+            <div class="prog-meta">
+                <span id="prog-label">第 1 题，共 10 题</span>
+                <span id="prog-pct">0%</span>
+            </div>
+            <div class="prog-track">
+                <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+            </div>
+        </div>
+        <div id="q-area"></div>
+    </div>
+</div>
+
+<div class="screen" id="s-result">
+    <div class="result-wrap" id="r-content"></div>
+</div>
+
+<script>
+var QUESTIONS ={
+  "q1": { "q": "暴乱席卷街道，如果现在不采取手段，数百人将在混乱中丧生。你会？", "opts": [
+      { "t": "铁腕镇压。立即封锁全城，哪怕会有冤假错案，但骚乱会瞬间停止。", "s": { "lannister": 5, "targaryen": 2 }, "fate": "血色的钟声在城门前敲了三遍。自此之后，维斯特洛的说书人再不敢在酒馆里提起那座城的名字——他们只说：那一夜，街道静得像刚下过雪。", "next": "q2" },
+      { "t": "坚守法治。禁止未经审判抓人。哪怕这意味着动荡延长、更多人流血。", "s": { "stark": 5, "nightswatch": 3 }, "fate": "你守住了那部被血浸透的法典。百年之后，学士们仍在争论：那一夜真正死去的，究竟是那些人，还是律法本身。", "next": "q2" }
+  ]},
+  "q2": { "q": "为了实现理想的正义，代价是余生在荒原度过：没肉吃、没酒喝、没家人，且无人知晓你的功绩。你接受吗？", "opts": [
+      { "t": "接受。相比于肉体的安逸，灵魂的纯粹和使命的达成对我更重要。", "s": { "nightswatch": 10, "stark": 2 }, "fate": "那一日起，名册上少了一个名字，长城之上多了一双不眠的眼睛。没有人会记得你——而这，正是誓言的本意。", "next": "q3" },
+      { "t": "拒绝。如果正义需要以剥夺基本的人性享受为代价，那这种正义我不想要。", "s": { "tyrell": 5, "lannister": 2 }, "fate": "你回头望了一眼那片白色的荒原，转身走回了人间的烟火。正义与美酒不该互为仇敌——这是你为自己写下的注脚。", "next": "q3" }
+  ]},
+  "q3": { "q": "你死后，墓碑上只能刻一句话，你选？", "opts": [
+      { "t": "'他生前双手沾血，但他死后世界太平。'", "s": { "targaryen": 5, "lannister": 2 }, "fate": "后世的君王会在你的墓前焚香，诗人却拒绝为你写诗。你早已预料到这个结局——也早已学会不在意。", "next": "q4" },
+      { "t": "'他生前一无所有，但他从未违背良心。'", "s": { "stark": 5, "nightswatch": 4 }, "fate": "坟头无碑，青草自生。这是你留给世间唯一的教诲——有人宁可穷死，也不愿弄脏双手。", "next": "q4" }
+  ]},
+  "q4": { "q": "家族面临灭顶之灾，唯一的生路是让你嫁/娶一个你极其恶心的变态权贵：", "opts": [
+      { "t": "屈从联姻。为了家族的产业和几百个家臣的生计，我的尊严不值一提。", "s": { "lannister": 4, "tyrell": 4 }, "fate": "婚典那夜，你在烛影里笑得比任何人都盛。唯有深夜独坐时，那只戒指会提醒你——家族旗帜的代价，是一整副被吞进肚里的骨头。", "next": "DYNAMIC_BRANCH" },
+      { "t": "拒绝联姻。哪怕家族从此消失、所有人去讨饭，我也不能忍受这种羞辱。", "s": { "stark": 5, "martell": 4 }, "fate": "祖宅的梁柱在寒风中塌下，你立于废墟之上，衣襟未染半点尘灰。有些血脉断在自己手里——比断在敌人手里更难。", "next": "DYNAMIC_BRANCH" }
+  ]},
+
+  "a5": { "q": "你处在权力巅峰。有个机会能彻底消灭全境贫困——代价是以非法手段没收大贵族的家产。而这些大贵族中，不乏你的至亲、挚友和当年雪中送炭的恩人：", "opts": [
+      { "t": "动手。为了大多数人的温饱，牺牲少数人的利益是必须的。", "s": { "targaryen": 5, "lannister": 2 }, "fate": "从此粮仓前不再有饿殍，金库前却堆起了尸体。吟游诗人把你的名字编进了两种歌谣——一种唱给穷人，一种咒给富人。", "next": "a6" },
+      { "t": "拒绝。私有财产不可侵犯，哪怕为了崇高的目标也不能当强盗。", "s": { "stark": 4, "tyrell": 3 }, "fate": "你放过了那条捷径。寒风中的贫民依旧排着长队——但你清楚：以正义之名行劫掠的，从来不是正义本身。", "next": "a6" }
+  ]},
+  "a6": { "q": "你最信任的副官为了救你，私自违令屠杀了已经投降的俘虏。不惩他，你的诏令在天下失信；惩他，你将失去最肝胆相照的心腹：", "opts": [
+      { "t": "当众斩首。我必须向所有人展示：法律面前，救命恩人也没有特权。", "s": { "stark": 5, "lannister": 2 }, "fate": "行刑那日，你亲自走上刑台。王冠之下，不容私恩——哪怕那人曾为你挡过三支箭。你成了合格的君主，也成了孤家寡人。", "next": "a7" },
+      { "t": "秘密保下。我宁愿背负骂名，也绝不折损为我出生入死的左膀右臂。", "s": { "tyrell": 6, "lannister": 3 }, "fate": "那把沾血的刀，被你悄悄藏进了自己的袖中。自此律法之上多了一道阴影——而这道阴影，日后将吞噬你亲手建起的一切。", "next": "a7" }
+  ]},
+  "a7": { "q": "与你一同起兵的结义兄弟，如今声望盖过了你。密探截获了他与敌国使者的往来信函，字里行间已有取而代之的野心——但你们曾歃血为盟：", "opts": [
+      { "t": "先下手为强。刀已经出鞘一半，等他真正挥下来时就晚了。权力只能有一个主人。", "s": { "lannister": 7, "tyrell": 2 }, "fate": "月落那一夜，两个名字从世上消失了——一个是你的兄弟，一个是你尚未腐烂的良心。从此王座之旁，只剩你自己的影子。", "next": "a8" },
+      { "t": "当面对质。我宁可把信摊在他面前赌一场——哪怕他先我一步翻脸、哪怕我就此死在他刀下，也不愿凭密报暗算结拜之人。若要靠夜里捅刀才能坐稳王座，这王座不要也罢。", "s": { "stark": 5, "martell": 4 }, "fate": "你放下了那杯毒酒。多年之后史册问起，你只留下一句：'我宁愿丢掉王座，也不愿丢掉共饮过的那碗汤。'", "next": "a8" }
+  ]},
+  "a8": { "q": "你能获得一份改写王国命运的绝对权柄——用它可终结连年饥荒、消弭战火、救下几十万在死亡边缘挣扎的流民。代价只有一个：亲手将你最心爱的孩子，推入祭火。", "opts": [
+      { "t": "推入火堆。一个孩子的命，换几十万人的命——这笔账我算得清，也背得起。哪怕余生活成怪物，我也能闭上眼。", "s": { "lannister": 10, "targaryen": 5 }, "fate": "王国如你所愿——饥荒退去，战火熄灭，史册称你为救世主。可每一个冬夜，你依然会听见那个孩子的哭声从火堆深处传来。你改写了所有人的命运，唯独改不了自己的。", "next": "q11" },
+      { "t": "抱紧孩子。我救不了所有人。一旦开始用亲人的命去换，我就不再是人——那几十万人，只能让他们继续挣扎。", "s": { "stark": 6, "martell": 4 }, "fate": "你抱紧了怀中那团柔软。外面的世界继续溃烂——饥荒照旧，战争照旧，流民照旧。你保住了一个孩子，放弃了几十万人。你告诉自己这叫守住底线——只有夜深人静时，你才承认：这也可能叫做怯懦。", "next": "q11" }
+  ]},
+
+  "b5": { "q": "屠城能终结战争，不从则多死几千自家战友：", "opts": [
+      { "t": "坚决不屠。兄弟们战死是军人的宿命，但我绝不对无辜者挥剑。", "s": { "stark": 7, "martell": 2 }, "fate": "你的旗帜沾满了自己人的血，却不曾染过任何异乡孩童的泪。战友的遗孀或许会恨你一辈子——而史册会用另一个词称呼你。", "next": "b6" },
+      { "t": "亲手点火。用这一个城的冤魂换取战友回家。我来背负这份血债。", "s": { "targaryen": 5, "lannister": 4 }, "fate": "那一夜的火光照亮了整条边境。你从不敢低头看自己的手，却每一次都亲自按下火把——这笔债，你留给了自己慢慢还。", "next": "b6" }
+  ]},
+  "b6": { "q": "全城都在骂你是卖国贼。如果你认错就能保命，不认错就被绞死：", "opts": [
+      { "t": "带着秘密死去。绝不低头。哪怕死后被万世唾骂，也要守住没人的清白。", "s": { "stark": 8, "nightswatch": 4 }, "fate": "绞架之上，你未曾辩解一字。真相随你一同下葬，谎言继续统治王国——你的清白，最终只有长城上的风知晓。", "next": "b7" },
+      { "t": "背负骂名苟活。活着才有机会翻盘。如果死了，真相永远被埋没。", "s": { "lannister": 5, "tyrell": 5 }, "fate": "你在嘲骂声中跪下，磕了三个响头。从此你活成了他们笔下最不堪的模样——而你袖中那把刀，在等一个更漫长的时机。", "next": "b7" }
+  ]},
+  "b7": { "q": "仇人刺了你一刀。现在他重伤濒死，只有你能救他：", "opts": [
+      { "t": "施救。我救人是因为我是个善良的人，跟他是个坏人没关系。", "s": { "stark": 6, "targaryen": 2 }, "fate": "你亲手把那双曾试图掐死自己的手，从鬼门关前拖了回来。仇人活了下来——而你，完成了对这残酷世界最精致的一次嘲讽。", "next": "b8" },
+      { "t": "等他咽气。我不是圣母。既然上天给了他报应，我没理由插手。", "s": { "martell": 7, "lannister": 4 }, "fate": "你看着宿敌在你脚边咽下最后一口气，未曾移开视线，也未曾伪装怜悯。有些公道——不必借神之手。", "next": "b8" }
+  ]},
+  "b8": { "q": "命运给你两条路安放余生：一是留在王都核心，仍有权修改律法、影响国运，但必须与污浊同桌共饮；二是退守长城之外，灵魂从此清净自由，但也彻底退出权力场——此后维斯特洛再多不公，都与你无关：", "opts": [
+      { "t": "留下。只能浸在脏水里，才有手修东西。我宁愿自己脏一点，也要亲手把这个烂掉的王国补起来。", "s": { "tyrell": 6, "lannister": 4 }, "fate": "你留了下来。十年之后，你起草的律法已经暗中救下了无数普通人——你也学会了在宴席上不动声色地微笑。没人记得，你曾经也是一个不会撒谎的少年。", "next": "b9" },
+      { "t": "离开。与其让自己烂掉，不如把世界还给它自己。我不欠这王国什么，它也不配再消耗我。", "s": { "nightswatch": 10, "stark": 2 }, "fate": "你踏上了通往黑城堡的雪路。自此维斯特洛的风暴与你无关，腐朽与你无关，每一条被改写的律法也都与你无关。你换回了一个干净的灵魂——也永远把世界让给了那些愿意弄脏手的人。", "next": "b9" }
+  ]},
+  "b9": { "q": "为了保住城里的平民，你必须亲手杀掉已经疯狂且在乱杀人的父亲：", "opts": [
+      { "t": "亲手弑父。法律和千百条人命比血脉更重，哪怕我余生被诅咒。", "s": { "stark": 6, "lannister": 3 }, "fate": "剑刃没入他胸口的那一刻，你杀死了两个人——一个疯王，一个自己。此后余生，每一次照镜，你都会看见他残存的眼神。", "next": "b10" },
+      { "t": "纵容父恶。哪怕他杀了全城人，他也依然是我的父亲。我不能当下手的凶手。", "s": { "lannister": 5, "martell": 4 }, "fate": "你放下了剑。那一夜城中哀嚎未绝，你的血脉却仍保着体温。有人唤你孝子，有人唤你帮凶——而你，同时是这两者。", "next": "b10" }
+  ]},
+  "b10": { "q": "牺牲你一个人的生命，能换取你最恨的仇敌毁灭。你会？", "opts": [
+      { "t": "一命换一命。只要能带他走，我这辈子就值了。", "s": { "martell": 8, "targaryen": 3 }, "fate": "你与仇恨一同投入烈焰。灰烬之中，两个名字烧成了同一种形状——这是你留给这个世界最后一个无解的谜。", "next": "q11" },
+      { "t": "留着命看他倒霉。我的命比他贵，我才不跟他同归于尽。", "s": { "tyrell": 6, "lannister": 4 }, "fate": "你拒绝成为祭品。你学会了一种新的技艺——让时间替你执刀。岁月剥他的皮，比任何利刃都慢，也更疼。", "next": "q11" }
+  ]},
+
+  "q11": { "q": "【终局】敌军进城。投降能保子民活命，不投降能保住你最后的尊严。你会？", "opts": [
+      { "t": "战至最后一人。我们可以死，不能跪。尊严是文明唯一的遗物。", "s": { "stark": 8, "martell": 6 }, "fate": "城墙塌下的那一刻，你仍然站着。敌人没能俘获一个下跪的你——他们只得到一座再无人烟的废墟，和一个足以载入史诗的名字。", "next": "q12" },
+      { "t": "屈膝投降。只要子民能活命，我的尊严可以扔在地上任人踩踏。", "s": { "lannister": 6, "tyrell": 6 }, "fate": "你摘下王冠，放在敌人脚边。城门大开，百姓哭着走出——耻辱归你，生路归他们。这是一个君主最后能做的计算。", "next": "q12" }
+  ]},
+  "q12": { "q": "生命最后一秒，你会做什么？", "opts": [
+      { "t": "最后检查一遍我留下的律法，确保它们在我死后还能运行。", "s": { "lannister": 6, "targaryen": 4 }, "fate": "最后一息，你仍在审阅那些写在羊皮卷上的条文。你死之后，它们将代替你坐上那张椅子——维持一个冷酷而公正的秩序。", "next": "FINISH" },
+      { "t": "看着北方的雪，安静地闭上眼。我终于自由了。", "s": { "nightswatch": 8, "stark": 2 }, "fate": "北方的雪落在你的睫毛上。你卸下了所有头衔，只剩一个名字——以及那个名字背后，一个曾认真活过的人。", "next": "FINISH" },
+      { "t": "最后再喝一口美酒，回忆每一个爱过的人。", "s": { "tyrell": 8, "martell": -4 }, "fate": "你在最后一口酒里，尝到了二十年前某个春日的味道。那一天，你爱过的人还活着——而你，也尚未学会如何告别。", "next": "FINISH" }
+  ]}
+}
+
+var QUESTION_ORDER = ["q1","q2","q3","q4","a5","a6","a7","a8","b5","b6","b7","b8","b9","b10","q11","q12"];
+
+var HOUSES = {
+    stark: {
+        name: "史塔克家族",
+        motto: "凛冬将至",
+        color: "#7baed4",
+        icon: "🐺",
+        traits: ["正直", "荣誉", "忠诚", "坚韧", "家族"],
+        desc: [
+            "你是北境的守护者，铁与血铸就的意志从未动摇。你相信承诺比黄金更有价值，在一个人人都在玩弄阴谋的时代，你选择了最难走的路——言出必行。",
+            "这并非天真，而是一种深刻的道德勇气。你清楚代价，却依然选择正直，因为你知道：若失去了原则，即便坐上铁王座，也不过是另一个暴君。",
+            "史塔克家族的人，不以权谋胜，却以人心胜。凛冬将至，而你早已做好了准备。"
+        ]
+    },
+    lannister: {
+        name: "兰尼斯特家族",
+        motto: "兰尼斯特必偿其债",
+        color: "#d4aa35",
+        icon: "🦁",
+        traits: ["智谋", "务实", "骄傲", "财富", "手腕"],
+        desc: [
+            "你是权力棋盘上最危险的棋手。你清楚地知道这个世界真正的运转规律：善意不能让军队吃饱，荣誉不能支付军饷。",
+            "你不是残忍的人，你只是比任何人都更诚实地面对现实。你的每一步都经过深思熟虑，恩必报，怨必还——这不是冷酷，这是你对秩序的理解。",
+            "追随你意味着安全与利益；背叛你则意味着付出无法承担的代价。兰尼斯特的金钱或许终会花尽，但他们的名字，不会被遗忘。"
+        ]
+    },
+    targaryen: {
+        name: "坦格利安家族",
+        motto: "火与血",
+        color: "#c9453a",
+        icon: "🐉",
+        traits: ["使命", "激情", "威严", "解放", "传奇"],
+        desc: [
+            "你相信自己生来不凡。这不是妄想，而是燃烧在内心的使命感——那些旧秩序的枷锁，那些代代相传的不公，都应当在烈火中化为灰烬。",
+            "你有能力让追随者甘愿赴死，因为他们在你眼中看见了光。你的弱点是过于专注于使命，有时忘记了脚下的人们。",
+            "但当你找到平衡，你将是这个世界上最令人心驰神往的存在——一个真正的解放者，一段足以传唱千年的传奇。"
+        ]
+    },
+    tyrell: {
+        name: "提利尔家族",
+        motto: "日益壮大",
+        color: "#4aaa6e",
+        icon: "🌹",
+        traits: ["外交", "优雅", "手段", "丰盛", "聪慧"],
+        desc: [
+            "你用丝绸包裹钢铁，用微笑掩盖算计，而这正是最高明的统治艺术。你深知强攻不如智取，让别人欠你人情，比强迫他们服从更为持久。",
+            "你热爱生活中的美好——美食、音乐、花园与宴席——但这不代表软弱，这代表你足够自信，不需要用蛮力来证明自己。",
+            "玫瑰有刺。提利尔的优雅之下是一套精密运转的权力机器，轻视你的人往往不知道自己已经输了。"
+        ]
+    },
+    martell: {
+        name: "马泰尔家族",
+        motto: "绝不屈服，绝不弯腰，绝不折断",
+        color: "#e07c30",
+        icon: "☀️",
+        traits: ["激情", "复仇", "平等", "独立", "坚韧"],
+        desc: [
+            "你从未忘记那些曾经伤害过你的人，也从未屈服于那些试图征服你的力量。多恩的烈日与红沙孕育了你的性格：热烈、坚韧、绝不妥协。",
+            "你比任何人都更清楚公平意味着什么。你愿意等待，愿意忍耐，因为你知道最好的复仇是让敌人被自己的傲慢所毁灭，而你依然屹立。",
+            "不屈是你的盾，激情是你的剑。那些以为征服了你的人，终将发现自己犯下了这一生中最大的错误。"
+        ]
+    },
+    nightswatch: {
+        name: "守夜人军团",
+        motto: "我是黑暗中燃烧的火焰",
+        color: "#9eaab5",
+        icon: "⚔️",
+        traits: ["牺牲", "大局", "誓言", "中立", "坚守"],
+        desc: [
+            "当所有人都在争夺铁王座时，你望向了更远的地方。那些政治游戏、家族恩怨、权力角逐——你看穿了它们的虚妄，选择了超越一切的使命。",
+            "你愿意放下个人的荣耀与私欲，因为你知道真正的威胁不在王都，而在长城之外无边无际的黑暗之中。这需要巨大的勇气，也需要更大的孤独。",
+            "你是那种在危难时刻挺身而出的人，不为赞誉，不为回报，只因为那是正确的事。历史不一定记住你的名字，但世界因你而得以延续。"
+        ]
+    }
+};
+
+var LEDGER = {
+    "q1:0": { when: "暴乱席卷全城之夜", did: "以铁血镇压暴乱", gain: "城池的瞬时寂静，以及无人敢再挑衅的威名", loss: "数百条未经审判便陨落的性命，以及世人对你仁慈的信任" },
+    "q1:1": { when: "暴乱席卷全城之夜", did: "坚守法治、拒绝越权抓人", gain: "一部未曾被权力沾污的律法", loss: "那一夜本可以活下来的数百条性命" },
+    "q2:0": { when: "面对荒原苦修之择时", did: "接受以余生孤寂换取正义", gain: "灵魂的纯粹与使命的达成", loss: "肉身的安逸、人间的烟火" },
+    "q2:1": { when: "面对荒原苦修之择时", did: "拒绝以人性享受为代价的正义", gain: "保有基本人性的生活", loss: "那套纯粹的正义理想" },
+    "q3:0": { when: "思量身后墓碑之言时", did: "选择「双手沾血但世界太平」", gain: "后世君王的焚香与太平盛世", loss: "诗人的笔墨与后世的温情" },
+    "q3:1": { when: "思量身后墓碑之言时", did: "选择「一无所有但无愧良心」", gain: "一副未曾出卖灵魂的骨气", loss: "世俗的成功与物质的丰裕" },
+    "q4:0": { when: "家族濒临灭顶之灾时", did: "屈从联姻以保全家族", gain: "领地旗帜继续飘扬，家臣得以饱食", loss: "你本可以自由度过的后半生" },
+    "q4:1": { when: "家族濒临灭顶之灾时", did: "拒绝联姻、守住尊严", gain: "一副未曾出卖给权贵的骨气", loss: "祖宅、血脉，以及数百家臣的生计" },
+    "a5:0": { when: "权力巅峰面对贫困之择时", did: "以非法手段没收贵族财产", gain: "全境贫困的终结与穷人的温饱", loss: "私有财产的尊严与至亲的信赖" },
+    "a5:1": { when: "权力巅峰面对贫困之择时", did: "坚守私有财产不可侵犯", gain: "对法治原则的忠诚", loss: "那条本可拯救贫民的捷径" },
+    "a6:0": { when: "副官违令屠杀俘虏之时", did: "当众斩首救命恩人", gain: "法律面前人人平等的威名", loss: "最肝胆相照的心腹与孤家寡人的寂寞" },
+    "a6:1": { when: "副官违令屠杀俘虏之时", did: "秘密保下违令的副官", gain: "生死与共的左膀右臂", loss: "诏令的威信与律法的阴影" },
+    "a7:0": { when: "结义兄弟已有取而代之之心时", did: "先下手为强铲除威胁", gain: "王座的稳固与权力的独尊", loss: "结义的誓言与良心的安宁" },
+    "a7:1": { when: "结义兄弟已有取而代之之心时", did: "当面对质、赌一场信任", gain: "问心无愧的坦荡与兄弟之情", loss: "王座的安全与生命的保障" },
+    "a8:0": { when: "以亲子献祭可换王国命运时", did: "亲手将孩子推入祭火", gain: "饥荒的终结与几十万流民的生路", loss: "为人父母的资格与余生的安宁" },
+    "a8:1": { when: "以亲子献祭可换王国命运时", did: "抱紧孩子放弃拯救", gain: "一个完整的人性与孩子的生命", loss: "那几十万挣扎中的流民" },
+    "b5:0": { when: "屠城可终结战争之刻", did: "坚决不屠、宁可牺牲战友", gain: "不杀无辜的清白与史册的赞誉", loss: "那几千本可回家的战友" },
+    "b5:1": { when: "屠城可终结战争之刻", did: "亲手点火、背负血债", gain: "战友的归家与战争的终结", loss: "满城的冤魂与洗净的双手" },
+    "b6:0": { when: "全城骂你卖国贼之时", did: "带着秘密赴死、绝不低头", gain: "没人的清白与不屈的尊严", loss: "生命与翻盘的时机" },
+    "b6:1": { when: "全城骂你卖国贼之时", did: "背负骂名苟活、等待时机", gain: "活着的机会与翻盘的可能", loss: "当世的清白与尊严" },
+    "b7:0": { when: "仇人濒死、唯你能救之时", did: "施救、以善良超越仇恨", gain: "灵魂的高洁与对世界的嘲讽", loss: "复仇的快感与恩怨的了断" },
+    "b7:1": { when: "仇人濒死、唯你能救之时", did: "等他咽气、不插手报应", gain: "恩怨的终结与宿敌的消亡", loss: "善良者的名声与慈悲的形象" },
+    "b8:0": { when: "选择余生安放之地时", did: "留在王都、与污浊同桌", gain: "亲手修补王国的机会", loss: "那个不会撒谎的少年" },
+    "b8:1": { when: "选择余生安放之地时", did: "退守长城、灵魂清净", gain: "一个干净的灵魂与自由", loss: "改变世界的权力与影响" },
+    "b9:0": { when: "父亲疯狂乱杀平民之时", did: "亲手弑父以保百姓", gain: "千百条人命与法律的尊严", loss: "父亲的性命与孝子的名声" },
+    "b9:1": { when: "父亲疯狂乱杀平民之时", did: "纵容父恶、不忍下手", gain: "孝子的名声与血脉的温情", loss: "满城百姓的性命与帮凶的骂名" },
+    "b10:0": { when: "一命可换仇敌毁灭之时", did: "与仇敌同归于尽", gain: "仇恨的终结与宿敌的毁灭", loss: "你的生命与余生的一切可能" },
+    "b10:1": { when: "一命可换仇敌毁灭之时", did: "留着命看他倒霉", gain: "生命的延续与时间的报复", loss: "即刻复仇的痛快与决绝" },
+    "q11:0": { when: "敌军攻破城门之刻", did: "战至最后一人、绝不下跪", gain: "一个足以载入史诗的名字", loss: "整座城池的生民，以及他们本应延续的日常" },
+    "q11:1": { when: "敌军攻破城门之刻", did: "屈膝投降以保全百姓", gain: "数万百姓得以活着走出城门", loss: "你的王冠、姓氏的荣光，以及此后史书里的体面" },
+    "q12:0": { when: "生命最后一息之际", did: "仍在审阅你留下的律法", gain: "一套将比你活得更久的秩序", loss: "最后一刻本可安放自己的宁静" },
+    "q12:1": { when: "生命最后一息之际", did: "望着北方的雪安然闭眼", gain: "一个干净且自由的灵魂", loss: "你曾执意要在人间改写的一切" },
+    "q12:2": { when: "生命最后一息之际", did: "以一口美酒与回忆作别", gain: "一抹残存至终的人间温度", loss: "你年轻时许下却未能兑现的承诺" }
+};
+
+var totalScores = {};
+var currentQId = "q1";
+var currentPath = "";
+var fateChronicle = [];
+var ledgerChronicle = [];
+
+function getQuestionIndex(qid) {
+    return QUESTION_ORDER.indexOf(qid);
+}
+
+function getWeightMultiplier(qid) {
+    if (qid === "q11" || qid === "q12") return 2.0;
+    var first = qid.charAt(0);
+    if (first === 'a' || first === 'b') return 1.2;
+    return 1.0;
+}
+
+function getTotalAnswered(qid) {
+    if (qid === "q1") return 0;
+    if (qid === "q2") return 1;
+    if (qid === "q3") return 2;
+    if (qid === "q4") return 3;
+    if (qid === "a5") return 4;
+    if (qid === "a6") return 5;
+    if (qid === "a7") return 6;
+    if (qid === "a8") return 7;
+    if (qid === "b5") return 4;
+    if (qid === "b6") return 5;
+    if (qid === "b7") return 6;
+    if (qid === "b8") return 7;
+    if (qid === "b9") return 8;
+    if (qid === "b10") return 9;
+    if (qid === "q11") return currentPath === "b" ? 10 : 8;
+    if (qid === "q12") return currentPath === "b" ? 11 : 9;
+    return 0;
+}
+
+function getTotalForPath() {
+    if (currentPath === "a") return 10;
+    if (currentPath === "b") return 12;
+    return 10;
+}
+
+function showScreen(id) {
+    var screens = document.querySelectorAll('.screen');
+    for (var i = 0; i < screens.length; i++) {
+        screens[i].classList.remove('active');
+    }
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+}
+
+function startQuiz() {
+    var keys = Object.keys(HOUSES);
+    for (var i = 0; i < keys.length; i++) {
+        totalScores[keys[i]] = 0;
+    }
+    currentQId = "q1";
+    currentPath = "";
+    fateChronicle = [];
+    ledgerChronicle = [];
+    var quizScreen = document.getElementById('s-quiz');
+    quizScreen.classList.remove('path-a', 'path-b');
+    showScreen('s-quiz');
+    renderQuestion("q1");
+}
+
+function renderQuestion(qid) {
+    var data = QUESTIONS[qid];
+    var letters = ['A', 'B', 'C', 'D'];
+    var answered = getTotalAnswered(qid);
+    var total = getTotalForPath();
+    var pct = Math.round(answered / total * 100);
+
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-label').textContent = '第 ' + (answered + 1) + ' 题，共 ' + total + ' 题';
+    document.getElementById('prog-pct').textContent = pct + '%';
+
+    var optsHtml = '';
+    for (var j = 0; j < data.opts.length; j++) {
+        optsHtml += '<button class="opt" data-qid="' + qid + '" data-opt-idx="' + j + '">'
+            + '<span class="opt-ltr">' + letters[j] + '</span>'
+            + '<span>' + data.opts[j].t + '</span>'
+            + '</button>';
+    }
+
+    var html = '<div class="q-card">'
+        + '<span class="corner-bl"></span><span class="corner-br"></span>'
+        + '<div class="q-label">CHAPTER ' + (answered + 1) + ' · 第 ' + (answered + 1) + ' 章</div>'
+        + '<div class="q-text" id="q-text-target"></div>'
+        + '<div class="opts" id="q-opts" style="pointer-events:none;opacity:0.35;transition:opacity 0.5s">' + optsHtml + '</div>'
+        + '</div>';
+
+    var area = document.getElementById('q-area');
+    area.innerHTML = html;
+
+    var target = document.getElementById('q-text-target');
+    typewriterText(target, data.q, function() {
+        var optsBox = document.getElementById('q-opts');
+        if (optsBox) {
+            optsBox.style.pointerEvents = 'auto';
+            optsBox.style.opacity = '1';
+        }
+        var btns = area.querySelectorAll('.opt');
+        for (var k = 0; k < btns.length; k++) {
+            btns[k].addEventListener('click', makePickHandler(btns[k], qid));
+        }
+    });
+}
+
+function typewriterText(el, text, callback) {
+    var chars = text.split('');
+    var i = 0;
+    var html = '';
+    for (var j = 0; j < chars.length; j++) {
+        html += '<span class="char" style="opacity:0">' + chars[j] + '</span>';
+    }
+    el.innerHTML = html;
+
+    var spans = el.querySelectorAll('.char');
+    var interval = setInterval(function() {
+        if (i < chars.length) {
+            spans[i].style.opacity = '1';
+            i++;
+        } else {
+            clearInterval(interval);
+            if (callback) callback();
+        }
+    }, 35);
+}
+
+function makePickHandler(btn, qid) {
+    return function() {
+        var optIdx = parseInt(btn.getAttribute('data-opt-idx'));
+        var data = QUESTIONS[qid];
+        var choice = data.opts[optIdx];
+
+        var allBtns = btn.closest('.opts').querySelectorAll('.opt');
+        for (var i = 0; i < allBtns.length; i++) {
+            allBtns[i].style.pointerEvents = 'none';
+        }
+        btn.style.background = 'rgba(201,168,76,0.11)';
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.color = 'var(--text)';
+
+        for (var house in choice.s) {
+            if (choice.s.hasOwnProperty(house)) {
+                totalScores[house] += Math.round(choice.s[house] * getWeightMultiplier(qid));
+            }
+        }
+
+        if (choice.fate) {
+            fateChronicle.push({ qid: qid, fate: choice.fate });
+        }
+        var ledgerKey = qid + ":" + optIdx;
+        if (LEDGER[ledgerKey]) {
+            ledgerChronicle.push(LEDGER[ledgerKey]);
+        }
+
+        handleChoice(choice.next);
+    };
+}
+
+function handleChoice(nextVal) {
+    if (nextVal === "DYNAMIC_BRANCH") {
+        var powerScore = totalScores.lannister + totalScores.tyrell;
+        var idealScore = totalScores.stark + totalScores.targaryen + totalScores.nightswatch;
+        if (powerScore >= idealScore) {
+            currentQId = "a5";
+            currentPath = "a";
+        } else {
+            currentQId = "b5";
+            currentPath = "b";
+        }
+        var quizScreen = document.getElementById('s-quiz');
+        quizScreen.classList.remove('path-a', 'path-b');
+        quizScreen.classList.add('path-' + currentPath);
+    } else if (nextVal === "FINISH") {
+        showResult();
+        return;
+    } else {
+        currentQId = nextVal;
+        if (currentQId.charAt(0) === 'a') currentPath = "a";
+        if (currentQId.charAt(0) === 'b') currentPath = "b";
+    }
+    renderQuestion(currentQId);
+}
+
+function composeNarrative() {
+    var KEEP = { "q1": 1, "q11": 1, "q12": 1 };
+    var SKIP = { "a8": 1 };
+    var picked = [];
+    for (var i = 0; i < fateChronicle.length; i++) {
+        var item = fateChronicle[i];
+        if (!item || !item.fate) continue;
+        if (SKIP[item.qid]) continue;
+        if (KEEP[item.qid]) picked.push(item.fate);
+    }
+    return picked.join("\n\n");
+}
+
+var ALLEGIANCE_DATA = {
+    stark: {
+        title: "史塔克家族",
+        motto: "凛冬不曾宽恕，你也从未乞求宽恕。",
+        summary: "你是北境最后的旧神之子。在这个以谎言为货币的时代，你偏偏要保留真话的金本位。世人笑你迂腐——你只报以沉默。因为你知道：当长夜真正降临，只有守住了良心的人，才守得住炉火。"
+    },
+    lannister: {
+        title: "兰尼斯特家族",
+        motto: "金钱偿债，血债血偿。",
+        summary: "你是清醒的。你看穿了荣誉的廉价、仁慈的昂贵，以及一切道德叙事背后的利息。你不需要被爱，只需要被算准——这比情感更持久，也比承诺更可信。凡欠兰尼斯特的，终将偿还。"
+    },
+    nightswatch: {
+        title: "守夜人军团",
+        motto: "长夜已至，我从今开始守望，至死方休。",
+        summary: "你放下了姓名、家族、情欲与功勋，只换得一件粗麻黑袍与一道誓言。长城之外没有吟游诗人，只有风与雪。你不是为了被记住而来——你是为了让他们得以忘记你，而在夜里安然入睡。"
+    },
+    targaryen: {
+        title: "坦格利安家族",
+        motto: "火与血，亦是火与自由。",
+        summary: "你生来就不该被关在墙内。你相信旧世界必须焚毁，新世界方得降生——这信念滚烫得近乎危险。凡人追求幸福，你追求重塑世界的权柄。哪怕最终飞向太阳的是你自己，你也不会回头。"
+    },
+    tyrell: {
+        title: "提利尔家族",
+        motto: "玫瑰带刺，带刺仍是玫瑰。",
+        summary: "你深谙一个秘密：真正的胜利从不喧哗。你用宴会代替战场，用婚姻代替盟约，用一句得体的玩笑抵过三场围城。当别人带着鲜血登基时，你早已在王座背后，微笑着签好了所有契约。"
+    },
+    martell: {
+        title: "马泰尔家族",
+        motto: "不屈，不折，不曾被征服。",
+        summary: "你来自烈日炙烤的土地，那里的人不懂弯腰，也不肯遗忘。你可以等十年、二十年、一整代人——直到仇敌以为你早已原谅。然后，你会用最精致的方式让他明白：多恩从不原谅，多恩也从不遗忘。"
+    }
+};
+
+function getWinnerKey(entries) {
+    var priority = ["stark", "nightswatch", "lannister", "targaryen", "tyrell", "martell"];
+    var maxScore = entries[0][1];
+    var topEntries = entries.filter(function(e) { return e[1] === maxScore; });
+    
+    if (topEntries.length === 1) {
+        return topEntries[0][0];
+    }
+    
+    var topKeys = topEntries.map(function(e) { return e[0]; });
+    for (var i = 0; i < priority.length; i++) {
+        if (topKeys.indexOf(priority[i]) !== -1) {
+            return priority[i];
+        }
+    }
+    return topEntries[0][0];
+}
+
+function showResult() {
+    var entries = Object.entries(totalScores);
+    entries.sort(function(a, b) { return b[1] - a[1]; });
+
+    var winKey = getWinnerKey(entries);
+    var h = HOUSES[winKey];
+    var allegiance = ALLEGIANCE_DATA[winKey];
+
+    var narrative = composeNarrative();
+
+    var houseEn = {
+        stark: 'HOUSE STARK', lannister: 'HOUSE LANNISTER', targaryen: 'HOUSE TARGARYEN',
+        tyrell: 'HOUSE TYRELL', martell: 'HOUSE MARTELL', nightswatch: "THE NIGHT'S WATCH"
+    };
+
+    document.documentElement.style.setProperty('--accent', h.color);
+
+    var maxScore = Math.max.apply(null, entries.map(function(e) { return e[1]; }));
+    if (maxScore <= 0) maxScore = 1;
+    var rankHtml = '';
+    for (var r = 0; r < entries.length; r++) {
+        var rk = entries[r][0];
+        var rs = entries[r][1];
+        var rh = HOUSES[rk];
+        if (!rh) continue;
+        var pct = Math.max(0, Math.round(rs / maxScore * 100));
+        var tag = '';
+        if (r === 0) tag = '<span class="rank-tag" style="color:' + rh.color + '">EFFIGY · 主效忠</span>';
+        else if (r === 1 && rs > 0) tag = '<span class="rank-tag" style="color:' + rh.color + ';opacity:0.65">SHADOW · 次倾向</span>';
+        var cls = 'rank-row' + (r === 0 ? ' primary' : '');
+        rankHtml += '<div class="' + cls + '" style="animation-delay:' + (0.15 + r * 0.12) + 's">'
+            + '<span class="rank-idx">' + (r + 1).toString().padStart(2, '0') + '</span>'
+            + '<span class="rank-icon">' + rh.icon + '</span>'
+            + '<div class="rank-main">'
+            + '<div class="rank-name"><span>' + rh.name + '</span>' + tag + '</div>'
+            + '<div class="rank-bar"><div class="rank-fill" data-pct="' + pct + '" style="color:' + rh.color + ';background:' + rh.color + '"></div></div>'
+            + '</div>'
+            + '<span class="rank-score">' + rs + '</span>'
+            + '</div>';
+    }
+
+    var secondKey = entries[1] && entries[1][1] > 0 ? entries[1][0] : null;
+    var secondHintHtml = '';
+    if (secondKey && ALLEGIANCE_DATA[secondKey]) {
+        var sh = HOUSES[secondKey];
+        secondHintHtml = '<div class="second-hint">'
+            + '在你骨血深处，还潜伏着一道<b style="color:' + sh.color + '">' + sh.name + '</b>的影子——'
+            + '当主效忠遭遇绝境时，你将以这个家族的方式完成最后的反击。'
+            + '</div>';
+    }
+
+    var html = '<div class="chronicle-wrap">'
+        + '<div class="allegiance-box">'
+        + '<span class="allegiance-corner-bl"></span><span class="allegiance-corner-br"></span>'
+        + '<span class="allegiance-icon">' + h.icon + '</span>'
+        + '<span class="allegiance-title-en">' + (houseEn[winKey] || '') + '</span>'
+        + '<p class="allegiance-motto">' + allegiance.motto + '</p>'
+        + '<h1 class="allegiance-title" style="color:' + h.color + '">你应效忠于 · ' + allegiance.title + '</h1>'
+        + '<p class="allegiance-advice">' + allegiance.summary + '</p>'
+        + '</div>'
+        + '<div class="rank-board">'
+        + '<span class="rc-bl"></span><span class="rc-br"></span>'
+        + '<div class="rank-title">ALLEGIANCE RANKING</div>'
+        + '<div class="rank-sub">阵 营 归 属 · 完 整 排 行</div>'
+        + rankHtml
+        + secondHintHtml
+        + '</div>'
+        + '<h2 class="chronicle-title">学 士 手 札 · 终 卷</h2>'
+        + (function() {
+            if (!ledgerChronicle.length) return '';
+            var rows = '';
+            for (var li = 0; li < ledgerChronicle.length; li++) {
+                var l = ledgerChronicle[li];
+                rows += '<div class="ledger-row" style="animation-delay:' + (0.1 + li * 0.15) + 's">'
+                    + '<div class="ledger-choice"><span class="chose-label">CHOSE</span>' + l.when + '：' + l.did + '</div>'
+                    + '<div class="ledger-gain">' + l.gain + '</div>'
+                    + '<div class="ledger-loss">' + l.loss + '</div>'
+                    + '</div>';
+            }
+            return '<div class="ledger-block">'
+                + '<div class="ledger-title">THE LEDGER OF CHOICES</div>'
+                + '<div class="ledger-sub">抉 择 结 算 · 所 得 与 所 失</div>'
+                + rows
+                + '</div>';
+        })()
+        + '<div class="chronicle-body" id="chronicle-text"></div>'
+        + '<div class="chronicle-footer">你在这篇宏大的史诗中，书写了 <span style="color:' + h.color + ';font-weight:500">' + h.name + '</span> 式的终章</div>'
+        + '<div class="result-foot" style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center"><button class="btn btn-secondary" id="btn-share">保 存 长 图</button><button class="btn" id="btn-restart">重 新 测 试</button></div>'
+        + '</div>';
+
+    document.getElementById('r-content').innerHTML = html;
+    showScreen('s-result');
+
+    setTimeout(function() {
+        var fills = document.querySelectorAll('.rank-fill');
+        for (var i = 0; i < fills.length; i++) {
+            (function(el, idx) {
+                setTimeout(function() {
+                    el.style.width = el.getAttribute('data-pct') + '%';
+                }, 200 + idx * 120);
+            })(fills[i], i);
+        }
+    }, 50);
+
+    typewriterNarrative(document.getElementById('chronicle-text'), narrative);
+
+    document.getElementById('btn-restart').addEventListener('click', startQuiz);
+    document.getElementById('btn-share').addEventListener('click', shareAsImage);
+}
+
+function shareAsImage() {
+    var btn = document.getElementById('btn-share');
+    if (!window.html2canvas) {
+        alert('截图组件加载失败，请检查网络后重试。');
+        return;
+    }
+    var target = document.querySelector('.chronicle-wrap');
+    if (!target) return;
+
+    var origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '生 成 中 …';
+
+    var foot = target.querySelector('.result-foot');
+    var prevFootDisplay = foot ? foot.style.display : '';
+    if (foot) foot.style.display = 'none';
+
+    // 强制所有入场动画到最终态
+    var animated = target.querySelectorAll('.rank-row, .ledger-row');
+    for (var i = 0; i < animated.length; i++) {
+        animated[i].style.animation = 'none';
+        animated[i].style.opacity = '1';
+        animated[i].style.transform = 'none';
+    }
+    var fills = target.querySelectorAll('.rank-fill');
+    for (var f = 0; f < fills.length; f++) {
+        fills[f].style.transition = 'none';
+        fills[f].style.width = fills[f].getAttribute('data-pct') + '%';
+    }
+    // 如果打字机还没完成，直接把完整文本补齐
+    var chron = target.querySelector('#chronicle-text');
+    if (chron) {
+        chron.innerHTML = composeNarrative().replace(/\n\n/g, '<br><br>');
+    }
+    // 浮动动画也停下，避免截到半空中
+    var allegianceIcon = target.querySelector('.allegiance-icon');
+    if (allegianceIcon) allegianceIcon.style.animation = 'none';
+
+    // 注入截图专用样式，强化对比避免发灰
+    var captureStyle = document.createElement('style');
+    captureStyle.id = 'capture-style-override';
+    captureStyle.textContent = [
+        /* 关键：截图容器内一切元素强制完全不透明、停止动画与过渡 */
+        '.chronicle-wrap, .chronicle-wrap *, .chronicle-wrap *::before, .chronicle-wrap *::after { opacity: 1 !important; animation: none !important; transition: none !important; filter: none !important; }',
+        /* 暗色羊皮纸 */
+        '.chronicle-wrap { background: #0f0b08 !important; padding: 3rem 2rem !important; }',
+        '.allegiance-box { background: #1a130d !important; border: 1px solid #c9a84c !important; }',
+        '.rank-board, .ledger-block { background: #16110c !important; border: 1px solid rgba(212,178,90,0.4) !important; }',
+        /* 亮金标题 */
+        '.allegiance-motto { color: #f0d57a !important; }',
+        '.allegiance-title-en { -webkit-text-fill-color: #e6c878 !important; color: #e6c878 !important; background: none !important; }',
+        '.chronicle-title { color: #e6c878 !important; }',
+        '.rank-title, .ledger-title { color: #e6c878 !important; }',
+        /* 正文亮奶色 */
+        '.allegiance-advice { color: #e8dcc4 !important; }',
+        '.chronicle-body { color: #efe5cc !important; }',
+        '.rank-name, .rank-name span { color: #f0e5cc !important; }',
+        '.ledger-choice { color: #f0e5cc !important; }',
+        '.ledger-gain { color: #e0d0b0 !important; }',
+        '.ledger-loss { color: #c8b4a0 !important; }',
+        /* 副标题/辅助文字 */
+        '.rank-sub, .ledger-sub, .chronicle-footer { color: #a89c84 !important; }',
+        '.rank-idx { color: #b5a68c !important; }',
+        '.rank-score { color: #d4b25a !important; }',
+        '.rank-row.primary .rank-idx { color: #f0d57a !important; text-shadow: none !important; }',
+        '.rank-row.primary .rank-score { color: #f0d57a !important; }',
+        '.ledger-choice .chose-label { color: #d4b25a !important; }',
+        '.ledger-gain::before { color: #d4b25a !important; }',
+        '.ledger-loss::before { color: #a86848 !important; }',
+        /* 次倾向提示 */
+        '.second-hint { color: #d8c8a8 !important; background: rgba(212,178,90,0.06) !important; border-left-color: #8a6a1e !important; }',
+        '.second-hint b { color: #f0e5cc !important; }',
+        /* 分隔线与槽底 */
+        '.rank-bar { background: rgba(255,240,200,0.12) !important; }',
+        '.rank-row, .ledger-row { border-bottom-color: rgba(212,178,90,0.18) !important; }',
+        /* 去阴影，避免叠灰 */
+        '.q-card, .allegiance-box, .rank-board, .ledger-block { box-shadow: none !important; }'
+    ].join('\n');
+    document.head.appendChild(captureStyle);
+    target.style.backgroundColor = '#0b0907';
+
+    // 等一帧让浏览器应用样式
+    var doCapture = function() {
+    window.html2canvas(target, {
+        backgroundColor: '#0a0806',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: target.scrollWidth,
+        windowHeight: target.scrollHeight
+    }).then(function(canvas) {
+        if (foot) foot.style.display = prevFootDisplay;
+        var s = document.getElementById('capture-style-override');
+        if (s) s.remove();
+        target.style.backgroundColor = '';
+
+        // 羊皮纸模式下轻微增对比即可，不再整体提亮
+        try {
+            var ctx = canvas.getContext('2d');
+            var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var d = img.data;
+            var contrast = 1.18;
+            var brightness = 8;
+            var intercept = 128 * (1 - contrast);
+            for (var p = 0; p < d.length; p += 4) {
+                var r = d[p]     * contrast + intercept + brightness + 4;
+                var g = d[p + 1] * contrast + intercept + brightness + 2;
+                var b = d[p + 2] * contrast + intercept + brightness;
+                d[p]     = r < 0 ? 0 : r > 255 ? 255 : r;
+                d[p + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
+                d[p + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
+            }
+            ctx.putImageData(img, 0, 0);
+        } catch (e) { /* 忽略跨源 canvas 锁定 */ }
+
+        canvas.toBlob(function(blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '铁王座之争-我的终卷.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            btn.disabled = false;
+            btn.textContent = origText;
+        }, 'image/png');
+    }).catch(function(err) {
+        if (foot) foot.style.display = prevFootDisplay;
+        var s = document.getElementById('capture-style-override');
+        if (s) s.remove();
+        target.style.backgroundColor = '';
+        btn.disabled = false;
+        btn.textContent = origText;
+        alert('截图失败：' + (err && err.message ? err.message : '未知错误'));
+    });
+    };
+    setTimeout(doCapture, 80);
+}
+
+function typewriterNarrative(el, text) {
+    var sentences = text.split(/([。！？.!?])/);
+    var displayText = "";
+    var i = 0;
+
+    function showNext() {
+        if (i < sentences.length) {
+            displayText += sentences[i];
+            el.innerHTML = displayText;
+            i++;
+            setTimeout(showNext, 80);
+        }
+    }
+    showNext();
+}
+
+document.getElementById('btn-start').addEventListener('click', startQuiz);
+
+(function initEmbers() {
+    var container = document.getElementById('embers');
+    if (!container) return;
+    var count = 26;
+    for (var i = 0; i < count; i++) {
+        var e = document.createElement('span');
+        e.className = 'ember';
+        var size = (Math.random() * 3 + 1.5).toFixed(2);
+        e.style.left = (Math.random() * 100) + 'vw';
+        e.style.width = size + 'px';
+        e.style.height = size + 'px';
+        e.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        e.style.animationDelay = (Math.random() * 12) + 's';
+        e.style.setProperty('--drift', (Math.random() * 160 - 80) + 'px');
+        e.style.opacity = (Math.random() * 0.5 + 0.3).toFixed(2);
+        container.appendChild(e);
+    }
+})();
+</script>
+</body>
+</html>
