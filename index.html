@@ -1603,8 +1603,10 @@ function shareAsImage() {
     captureStyle.textContent = [
         /* 关键：截图容器内一切元素强制完全不透明、停止动画与过渡 */
         '.chronicle-wrap, .chronicle-wrap *, .chronicle-wrap *::before, .chronicle-wrap *::after { opacity: 1 !important; animation: none !important; transition: none !important; filter: none !important; }',
-        /* 暗色羊皮纸 */
-        '.chronicle-wrap { background: #0f0b08 !important; padding: 3rem 2rem !important; }',
+        /* 暗色羊皮纸 - 设置最小宽度确保手机端截图不会太窄 */
+        '.chronicle-wrap { background: #0f0b08 !important; padding: 3rem 2rem !important; min-width: 660px !important; max-width: 720px !important; width: 100% !important; box-sizing: border-box !important; }',
+        '.chronicle-wrap .allegiance-advice { max-width: none !important; width: 100% !important; }',
+        '.chronicle-wrap .rank-board, .chronicle-wrap .ledger-block { max-width: none !important; width: 100% !important; }',
         '.allegiance-box { background: #1a130d !important; border: 1px solid #c9a84c !important; }',
         '.rank-board, .ledger-block { background: #16110c !important; border: 1px solid rgba(212,178,90,0.4) !important; }',
         /* 亮金标题 */
@@ -1642,14 +1644,25 @@ function shareAsImage() {
 
     // 等一帧让浏览器应用样式
     var doCapture = function() {
+    // 强制设置容器宽度为固定值，避免手机端截图过窄
+    target.style.minWidth = '660px';
+    target.style.maxWidth = '720px';
+    target.style.width = '660px';
+    
     window.html2canvas(target, {
         backgroundColor: '#0a0806',
         scale: 2,
         useCORS: true,
         logging: false,
-        windowWidth: target.scrollWidth,
+        width: 660,
+        height: target.scrollHeight,
+        windowWidth: 660,
         windowHeight: target.scrollHeight
     }).then(function(canvas) {
+        // 恢复原始样式
+        target.style.minWidth = '';
+        target.style.maxWidth = '';
+        target.style.width = '';
         if (foot) foot.style.display = prevFootDisplay;
         var s = document.getElementById('capture-style-override');
         if (s) s.remove();
